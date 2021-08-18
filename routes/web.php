@@ -15,3 +15,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', [UserController::class, 'index']);
+Route::get('/register', [UserController::class, 'register']);
+Route::get('/forgot', [UserController::class, 'forgot']);
+Route::get('/reset', [UserController::class, 'reset']);
