@@ -51,7 +51,7 @@
                 url: '{{ route('auth.login') }}',
                 method: 'post',
                 data: $(this).serialize(),
-                // dataType: 'json',
+                dataType: 'json',
                 success: function(res) {
                     if (res.status === 400) {
                         showError('email', res.messages.email);

@@ -16,7 +16,11 @@ class UserController extends Controller
 
     public function register()
     {
-        return view('auth.register');
+        if (session()->has('loggedInUser')) {
+            return redirect('/profile');
+        } else {
+            return view('auth.register');
+        }
     }
 
     public function forgot()
@@ -107,8 +111,21 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Profile page
+     *
+     * @return void
+     */
     public function profile()
     {
         return view('profile');
+    }
+
+    public function logout()
+    {
+        if (session()->has('loggedInUser')) {
+            session()->pull('loggedInUser');
+            return redirect('/');
+        }
     }
 }
