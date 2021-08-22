@@ -16,7 +16,11 @@ class UserController extends Controller
 
     public function register()
     {
-        return view('auth.register');
+        if (session()->has('loggedInUser')) {
+            return redirect('/profile');
+        } else {
+            return view('auth.register');
+        }
     }
 
     public function forgot()
@@ -62,6 +66,66 @@ class UserController extends Controller
                 'status' => 200,
                 'messages' => 'Registered Successfully',
             ]);
+        }
+    }
+
+    /**
+     * Handles login a user AJAX request
+     *
+     * @param Request $request
+     * @return void
+     */
+    public function loginUser(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|max:100',
+            'password' => 'required|min:6|max:50',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 400,
+                'messages' => $validator->getMessageBag(),
+            ]);
+        } else {
+            $user = User::where('email', $request->email)->first();
+            if ($user) {
+                if (Hash::check($request->password, $user->password)) {
+                    $request->session()->put('loggedInUser', $user->id);
+                    return response()->json([
+                        'status' => 200,
+                        'messages' => 'success',
+                    ]);
+                } else {
+                    return response()->json([
+                        'status' => 401,
+                        'messages' => 'Email or password is incorrect!',
+                    ]);
+                }
+            } else {
+                return response()->json([
+                    'status' => 401,
+                    'messages' => 'User not found!',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Profile page
+     *
+     * @return void
+     */
+    public function profile()
+    {
+        return view('profile');
+    }
+
+    public function logout()
+    {
+        if (session()->has('loggedInUser')) {
+            session()->pull('loggedInUser');
+            return redirect('/');
         }
     }
 }
