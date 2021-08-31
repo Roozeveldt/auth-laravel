@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -118,7 +120,8 @@ class UserController extends Controller
      */
     public function profile()
     {
-        return view('profile');
+        $data = ['userInfo' => DB::table('users')->where('id', session('loggedInUser'))->first()];
+        return view('profile', $data);
     }
 
     public function logout()
@@ -127,5 +130,50 @@ class UserController extends Controller
             session()->pull('loggedInUser');
             return redirect('/');
         }
+    }
+
+    /**
+     * Handles updating a user profile picture AJAX request
+     */
+    public function profileImageUpdate(Request $request)
+    {
+        $user_id = $request->user_id;
+        $user = User::find($user_id);
+        
+        if ($request->hasFile('picture')) {
+            $file = $request->file('picture');
+            $fileName = time() . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('public/images/', $fileName);
+
+            if ($user->picture) {
+                Storage::delete('public/images/' . $user->picture);
+            }
+        }
+        User::where('id', $user_id)->update([
+            'picture' => $fileName,
+        ]);
+        
+        return response()->json([
+            'status' => 200,
+            'messages' => 'Profile image updated successfully!',
+        ]);
+    }
+
+    /**
+     * Handles updating a user profile AJAX request
+     */
+    public function profileUpdate(Request $request)
+    {
+        User::where('id', $request->id)->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'gender' => $request->gender,
+            'dob' => $request->dob,
+            'phone' => $request->phone,
+        ]);
+        return response()->json([
+            'status' => 200,
+            'messages' => 'Profile updated successfully!',
+        ]);
     }
 }
