@@ -16,10 +16,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/register', [UserController::class, 'register']);
 Route::get('/forgot', [UserController::class, 'forgot']);
-Route::get('/reset', [UserController::class, 'reset']);
+Route::get('/reset/{email}/{token}', [UserController::class, 'reset'])->name('reset');
 
 Route::post('/register', [UserController::class, 'saveUser'])->name('auth.register');
 Route::post('/login', [UserController::class, 'loginUser'])->name('auth.login');
+Route::post('/forgot', [UserController::class, 'forgotPassword'])->name('auth.forgot');
 
 Route::group(['middleware' => ['LoginCheck']], function() {
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');

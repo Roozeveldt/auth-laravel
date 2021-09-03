@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ForgotPassword;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -175,5 +179,47 @@ class UserController extends Controller
             'status' => 200,
             'messages' => 'Profile updated successfully!',
         ]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|max:100'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 400,
+                'messages' => $validator->getMessageBag(),
+            ]);
+        } else {
+            $token = Str::uuid(); // 67e918da-7300-40ee-ad52-28c3de0a323b
+            $user = DB::table('users')->where('email', $request->email)->first();
+            $details = [
+                'body' => route('reset', [
+                    'email' => $request->email,
+                    'token' => $token,
+                ]),
+            ];
+
+            if ($user) {
+                User::where('email', $request->email)->update([
+                    'token' => $token,
+                    'token_expire' => Carbon::now()->addMinutes(10)->toDateTimeString(),
+                ]);
+
+                Mail::to($request->email)->send(new ForgotPassword($details));
+
+                return response()->json([
+                    'status' => 200,
+                    'messages' => 'Reset password link has been sent to your email!',
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 401,
+                    'messages' => 'This email is not registered with us!',
+                ]);
+            }
+        }
     }
 }
