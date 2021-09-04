@@ -21,6 +21,7 @@ Route::get('/reset/{email}/{token}', [UserController::class, 'reset'])->name('re
 Route::post('/register', [UserController::class, 'saveUser'])->name('auth.register');
 Route::post('/login', [UserController::class, 'loginUser'])->name('auth.login');
 Route::post('/forgot', [UserController::class, 'forgotPassword'])->name('auth.forgot');
+Route::post('/reset-password', [UserController::class, 'resetPassword'])->name('auth.reset');
 
 Route::group(['middleware' => ['LoginCheck']], function() {
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
