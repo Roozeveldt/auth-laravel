@@ -31,12 +31,21 @@ class UserController extends Controller
 
     public function forgot()
     {
-        return view('auth.forgot');
+        if (session()->has('loggedInUser')) {
+            return redirect('/profile');
+        } else {
+            return view('auth.forgot');
+        }
     }
 
-    public function reset()
+    public function reset(Request $request)
     {
-        return view('auth.reset');
+        $email = $request->email;
+        $token = $request->token;
+        return view('auth.reset', [
+            'email' => $email,
+            'token' => $token,
+        ]);
     }
 
     /**
@@ -138,12 +147,15 @@ class UserController extends Controller
 
     /**
      * Handles updating a user profile picture AJAX request
+     *
+     * @param Request $request
+     * @return void
      */
     public function profileImageUpdate(Request $request)
     {
         $user_id = $request->user_id;
         $user = User::find($user_id);
-        
+
         if ($request->hasFile('picture')) {
             $file = $request->file('picture');
             $fileName = time() . '.' . $file->getClientOriginalExtension();
@@ -156,7 +168,7 @@ class UserController extends Controller
         User::where('id', $user_id)->update([
             'picture' => $fileName,
         ]);
-        
+
         return response()->json([
             'status' => 200,
             'messages' => 'Profile image updated successfully!',
@@ -165,6 +177,9 @@ class UserController extends Controller
 
     /**
      * Handles updating a user profile AJAX request
+     *
+     * @param Request $request
+     * @return void
      */
     public function profileUpdate(Request $request)
     {
@@ -181,6 +196,12 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Handles resetting a password AJAX request
+     *
+     * @param Request $request
+     * @return void
+     */
     public function forgotPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -218,6 +239,48 @@ class UserController extends Controller
                 return response()->json([
                     'status' => 401,
                     'messages' => 'This email is not registered with us!',
+                ]);
+            }
+        }
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'npass' => 'required|min:6|max:50',
+            'cnpass' => 'required|min:6|max:50|same:npass',
+        ], [
+            'cnpass.same' => 'Passwords do not match!',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 400,
+                'messages' => $validator->getMessageBag(),
+            ]);
+        } else {
+            $user = DB::table('users')
+                        ->where('email', $request->email)
+                        ->whereNotNull('token')
+                        ->where('token', $request->token)
+                        ->where('token_expire', '>', Carbon::now())
+                        ->exists();
+
+            if ($user) {
+                User::where('email', $request->email)->update([
+                    'password' => Hash::make($request->npass),
+                    'token' => null,
+                    'token_expire' => null,
+                ]);
+
+                return response()->json([
+                    'status' => 200,
+                    'messages' => 'New password has been created!&nbsp;&nbsp;<a href="/">Login Now</a>'
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 401,
+                    'messages' => 'Reset link expired! Request a new reset password link.',
                 ]);
             }
         }
